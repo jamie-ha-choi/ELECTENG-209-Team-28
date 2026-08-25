@@ -7,6 +7,10 @@
 
 //define frequency CPU to 2MHZ,using UL(unsigned long number).
 #define F_CPU 2000000UL
+//define baud rate.
+#define BAUD 9600UL
+//calculate UBRR value.
+#define UBRR_VALUE ((F_CPU / (16UL * BAUD)) - 1)
 //give access to ATmega hardware register.
 #include <avr/io.h>
 //enable delay.
@@ -16,7 +20,7 @@
 //include functions crated in uart.h.
 #include "uart.h"
 
-// pre-define RMSVoltage,PeakCurrent,Power
+//Pre-define RMSVoltage,PeakCurrent,Power
 #define RMSVoltage     14.5
 #define PeakCurrent    125
 #define Power          1.60
@@ -35,6 +39,9 @@ int main(void)
 	char current_text[] = "Peak Current is: ";
 	//character array storing the power label.
 	char power_text[] = "Power is: ";
+	
+	//Initial the USART with calculated UBRR value
+	usart_init(UBRR_VALUE);
     while (1) 
     {
     }
