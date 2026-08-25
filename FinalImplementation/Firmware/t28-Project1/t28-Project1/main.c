@@ -56,9 +56,9 @@ int main(void)
  		usart_transmit('\n');
 
 		// Peak Current label
-		for (i = 0; rms_text[i] != '\0'; i++)
+		for (i = 0; current_text[i] != '\0'; i++)
         {
-            usart_transmit(rms_text[i]);
+            usart_transmit(current_text[i]);
         }
 		usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 0)));
         usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 1)));
@@ -66,9 +66,9 @@ int main(void)
 		usart_transmit('\r');
 		usart_transmit('\n');
 		// Power label
-		for (i = 0; rms_text[i] != '\0'; i++)
+		for (i = 0; power_text[i] != '\0'; i++)
         {
-            usart_transmit(rms_text[i]);
+            usart_transmit(power_text[i]);
         }
 		usart_transmit(digit_to_ascii(extract_digit(Power, 0)));
 		usart_transmit('.');
