@@ -2,17 +2,14 @@
  * t28-Project1.c
  *
  * Created: 2026/8/25 12:31:37
- * Author : Lingwu Cai, Bowen, Ziqi Meng, Jaime
+ * Author : Lingwu Cai, Bowen, Ziqi Meng, Jamie
  */ 
 
-//Define frequency CPU to 2MHZ,using UL(unsigned long number).
+/* Define frequency CPU to 2MHZ, using UL(unsigned long number) and
+define baud rate + calculate UBRR value. */
 #define F_CPU 2000000UL
-//define baud rate.
 #define BAUD 9600UL
-//calculate UBRR value.
 #define UBRR_VALUE ((F_CPU / (16UL * BAUD)) - 1)
-//give access to ATmega hardware register.
-
 
 //Give access to ATmega hardware register, enable delay, 
 //provide fixed width integer, include functions created in uart.h.
