@@ -52,6 +52,8 @@ int main(void)
         usart_transmit(digit_to_ascii(extract_digit(RMSVoltage, 1)));
         usart_transmit('.');
         usart_transmit(digit_to_ascii(extract_digit(RMSVoltage, 2)));
+		usart_transmit('\r');
+ 		usart_transmit('\n');
 
 		// Peak Current label
 		for (i = 0; rms_text[i] != '\0'; i++)
@@ -61,7 +63,8 @@ int main(void)
 		usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 0)));
         usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 1)));
         usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 2)));
-
+		usart_transmit('\r');
+		usart_transmit('\n');
 		// Power label
 		for (i = 0; rms_text[i] != '\0'; i++)
         {
@@ -71,7 +74,8 @@ int main(void)
 		usart_transmit('.');
         usart_transmit(digit_to_ascii(extract_digit(Power, 1)));
         usart_transmit(digit_to_ascii(extract_digit(Power, 2)));
-
+		usart_transmit('\r');
+        usart_transmit('\n');
 		_delay_ms(1000);
     }
 }
