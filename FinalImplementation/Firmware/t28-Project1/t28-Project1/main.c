@@ -15,13 +15,14 @@ define baud rate + calculate UBRR value. */
 //provide fixed width integer, include functions created in uart.h.
 #include <avr/io.h>
 #include <util/delay.h>
-#include<stdint.h>
+#include <stdint.h>
 #include "uart.h"
 
 // Pre-define RMSVoltage, PeakCurrent, Power
-#define RMSVoltage     14.5
+#define RMSVoltage     145
 #define PeakCurrent    125
-#define Power          1.60
+#define Power          160
+
 
 
 int main(void)
