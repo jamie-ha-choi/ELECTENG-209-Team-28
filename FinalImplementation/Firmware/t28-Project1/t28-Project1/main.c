@@ -32,6 +32,8 @@ int main(void)
 	uint8_t i;
 	uint16_t value;
 	
+    usart_init(12);
+
 	//Character arrays storing the RMS voltage, peak current, power labels.
 	char rms_text[] = "RMS Voltage is: ";
 	char current_text[] = "Peak Current is: ";
@@ -41,6 +43,36 @@ int main(void)
 	usart_init(UBRR_VALUE);
     while (1) 
     {
+		// RMS voltage label
+		for (i = 0; rms_text[i] != '\0'; i++)
+        {
+            usart_transmit(rms_text[i]);
+        }
+		usart_transmit(digit_to_ascii(extract_digit(RMSVoltage, 0)));
+        usart_transmit(digit_to_ascii(extract_digit(RMSVoltage, 1)));
+        usart_transmit('.');
+        usart_transmit(digit_to_ascii(extract_digit(RMSVoltage, 2)));
+
+		// Peak Current label
+		for (i = 0; rms_text[i] != '\0'; i++)
+        {
+            usart_transmit(rms_text[i]);
+        }
+		usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 0)));
+        usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 1)));
+        usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 2)));
+
+		// Power label
+		for (i = 0; rms_text[i] != '\0'; i++)
+        {
+            usart_transmit(rms_text[i]);
+        }
+		usart_transmit(digit_to_ascii(extract_digit(Power, 0)));
+		usart_transmit('.');
+        usart_transmit(digit_to_ascii(extract_digit(Power, 1)));
+        usart_transmit(digit_to_ascii(extract_digit(Power, 2)));
+
+		_delay_ms(1000);
     }
 }
 
