@@ -25,5 +25,5 @@ uint8_t extract_digit(uint16_t number, uint8_t position);
 // Create function to convert digits to ASCII
 uint8_t digit_to_ascii(uint8_t digit);
 
-//end of include guard.
+// End of include guard.
 #endif /* UART_H_ */
