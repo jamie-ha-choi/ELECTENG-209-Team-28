@@ -65,6 +65,7 @@ int main(void)
         usart_transmit(digit_to_ascii(extract_digit(PeakCurrent, 2)));
 		usart_transmit('\r');
 		usart_transmit('\n');
+		
 		// Power label
 		for (i = 0; power_text[i] != '\0'; i++)
         {
