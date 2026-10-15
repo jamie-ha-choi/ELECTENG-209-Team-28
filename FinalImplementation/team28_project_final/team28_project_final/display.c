@@ -1,12 +1,23 @@
+
 /*
  * display.c
  *
- * Created: 2026/10/9 16:03:56
- *  Author: Admin
- */ 
+ * ELECTENG 209 Energy Monitor
+ * Team 28
+ *
+ * Four-digit 7-segment display
+ *
+ * Display modes:
+ *
+ * Voltage: 14.0U
+ * Current: 300A  (300 mA peak)
+ * Power:   2.91P / 12.4P / 126P
+ */
+
 #include "display.h"
 
 #include <avr/io.h>
+#include <stdint.h>
 
 
 /*
@@ -38,7 +49,7 @@ static const uint8_t seg_pattern[10] =
 
 
 /*
- * Extra characters.
+ * Extra characters
  */
 
 #define SEG_U       0x3E
@@ -50,9 +61,7 @@ static const uint8_t seg_pattern[10] =
 
 
 /*
- * IMPORTANT:
- *
- * Our array order is:
+ * Display array order:
  *
  * [0] = right-most digit = Ds4
  * [1] = Ds3
@@ -68,6 +77,10 @@ static volatile uint8_t disp_characters[4] =
 
 static volatile uint8_t disp_position = 0;
 
+
+/*
+ * Initialise display pins
+ */
 
 void init_display(void)
 {
@@ -96,7 +109,7 @@ void init_display(void)
 
 
     /*
-     * Clock/latch LOW.
+     * Clock and latch LOW
      */
 
     PORTC &= ~(1 << PC3);
@@ -108,9 +121,7 @@ void init_display(void)
      * Common cathode digit selection
      * is active-low.
      *
-     * 1 = digit OFF.
-     *
-     * Turn all digits off initially.
+     * 1 = digit OFF
      */
 
     PORTD |= (1 << PD4)
@@ -121,9 +132,11 @@ void init_display(void)
 
 
 /*
- * Helper function:
+ * Set four display patterns
  *
- * Parameters are LEFT ? RIGHT.
+ * Parameters:
+ * d1 = left-most
+ * d4 = right-most
  */
 
 static void display_set_patterns(
@@ -132,18 +145,18 @@ static void display_set_patterns(
     uint8_t d3,
     uint8_t d4)
 {
-    /*
-     * Array is stored backwards because:
-     *
-     * position 0 = Ds4
-     */
-
     disp_characters[3] = d1;
     disp_characters[2] = d2;
     disp_characters[1] = d3;
     disp_characters[0] = d4;
 }
 
+
+/*
+ * Refresh one digit
+ *
+ * Called from Timer0 interrupt
+ */
 
 void send_next_character_to_display(void)
 {
@@ -153,7 +166,7 @@ void send_next_character_to_display(void)
 
 
     /*
-     * Start shift clock/latch LOW.
+     * Clock and latch LOW
      */
 
     PORTC &= ~(1 << PC3);
@@ -162,17 +175,11 @@ void send_next_character_to_display(void)
 
 
     /*
-     * Send 8 bits MSB first.
+     * Shift 8 bits MSB first
      */
 
     for (uint8_t i = 0; i < 8; i++)
     {
-        /*
-         * 0x80 = 10000000
-         *
-         * Check current MSB.
-         */
-
         if (data & 0x80)
         {
             PORTC |= (1 << PC4);
@@ -184,9 +191,7 @@ void send_next_character_to_display(void)
 
 
         /*
-         * SH_CP pulse:
-         *
-         * 0 ? 1 ? 0
+         * Shift clock pulse
          */
 
         PORTC |= (1 << PC3);
@@ -195,7 +200,7 @@ void send_next_character_to_display(void)
 
 
         /*
-         * Move next bit into MSB position.
+         * Shift to next bit
          */
 
         data <<= 1;
@@ -203,7 +208,7 @@ void send_next_character_to_display(void)
 
 
     /*
-     * Disable all digits first.
+     * Turn off all digits
      */
 
     PORTD |= (1 << PD4)
@@ -213,7 +218,7 @@ void send_next_character_to_display(void)
 
 
     /*
-     * SH_ST latch pulse.
+     * Latch new data
      */
 
     PORTC |= (1 << PC5);
@@ -222,9 +227,9 @@ void send_next_character_to_display(void)
 
 
     /*
-     * Turn on ONE digit.
+     * Enable one digit
      *
-     * Active-low.
+     * Active-low
      */
 
     if (disp_position == 0)
@@ -253,7 +258,7 @@ void send_next_character_to_display(void)
 
 
     /*
-     * Next digit.
+     * Move to next digit
      */
 
     disp_position++;
@@ -265,27 +270,28 @@ void send_next_character_to_display(void)
     }
 }
 
+
 /*
- * Display voltage
+ * =========================================
+ * DISPLAY VOLTAGE
+ * =========================================
+ *
+ * Input: millivolts
  *
  * Example:
  *
- * voltage_mV = 14020
- *
- * Display:
- *
- * 14.0U
+ * 13700 mV -> 13.7U
+ * 14020 mV -> 14.0U
  */
+
 void display_voltage(uint16_t voltage_mV)
 {
     /*
-     * Convert mV to 0.1V
-     *
-     * 14020mV
-     * -> 140
-     * -> 14.0V
+     * Convert mV to 0.1 V
      */
-    uint16_t value = (voltage_mV + 50) / 100;
+
+    uint16_t value =
+        (voltage_mV + 50UL) / 100UL;
 
 
     uint8_t tens =
@@ -299,10 +305,11 @@ void display_voltage(uint16_t voltage_mV)
 
 
     /*
-     * Display:
+     * Display format:
      *
-     * 1 4. 0 U
+     * 1 3. 7 U
      */
+
     display_set_patterns(
         seg_pattern[tens],
         seg_pattern[ones] | SEG_DP,
@@ -313,24 +320,26 @@ void display_voltage(uint16_t voltage_mV)
 
 
 /*
- * Display current
+ * =========================================
+ * DISPLAY CURRENT
+ * =========================================
  *
- * Current unit is mA peak.
+ * Input: mA peak
  *
  * Example:
  *
- * 425mA
+ * 300 mA -> 300A
+ * 275 mA -> 275A
  *
- * Display:
- *
- * 425A
+ * Last A represents current.
  */
+
 void display_current(uint16_t current_mA)
 {
     /*
-     * We only have 3 numerical digits
-     * because the last digit shows A.
+     * Maximum display = 999 mA
      */
+
     if (current_mA > 999)
     {
         current_mA = 999;
@@ -357,26 +366,36 @@ void display_current(uint16_t current_mA)
 
 
 /*
- * Display power
+ * =========================================
+ * DISPLAY REAL POWER
+ * =========================================
  *
- * power_mW is power in milliwatts.
+ * Input: milliwatts
  *
- * Example:
+ * Automatic decimal point:
  *
- * 6250mW
+ * 0.00 - 9.99 W:
+ *   2.91P
  *
- * -> 6.25W
+ * 10.0 - 99.9 W:
+ *   12.4P
  *
- * Display:
+ * 100 - 999 W:
+ *   126P
  *
- * 6.25P
+ * Negative power:
+ *   ----
+ *
+ * Out of range:
+ *   ---P
  */
+
 void display_power(int32_t power_mW)
 {
     /*
-     * If calculated power is negative,
-     * show ---- for now.
+     * Negative power
      */
+
     if (power_mW < 0)
     {
         display_set_patterns(
@@ -390,39 +409,128 @@ void display_power(int32_t power_mW)
     }
 
 
+    uint32_t p = (uint32_t)power_mW;
+
+
     /*
-     * Convert mW into 0.01W.
+     * RANGE 1:
+     *
+     * 0.00 to 9.99 W
+     *
+     * Resolution = 0.01 W
      *
      * Example:
-     *
-     * 6250mW
-     * -> 625
-     * -> 6.25W
+     * 2910 mW -> 2.91P
      */
-    uint16_t value =
-        (uint16_t)((power_mW + 5) / 10);
 
-
-    if (value > 999)
+    if (p < 9995UL)
     {
-        value = 999;
+        uint16_t value =
+            (uint16_t)((p + 5UL) / 10UL);
+
+
+        uint8_t whole =
+            (value / 100) % 10;
+
+        uint8_t decimal1 =
+            (value / 10) % 10;
+
+        uint8_t decimal2 =
+            value % 10;
+
+
+        display_set_patterns(
+            seg_pattern[whole] | SEG_DP,
+            seg_pattern[decimal1],
+            seg_pattern[decimal2],
+            SEG_P
+        );
     }
 
 
-    uint8_t whole =
-        (value / 100) % 10;
+    /*
+     * RANGE 2:
+     *
+     * 10.0 to 99.9 W
+     *
+     * Resolution = 0.1 W
+     *
+     * Example:
+     * 12360 mW -> 12.4P
+     */
 
-    uint8_t decimal1 =
-        (value / 10) % 10;
+    else if (p < 99950UL)
+    {
+        uint16_t value =
+            (uint16_t)((p + 50UL) / 100UL);
 
-    uint8_t decimal2 =
-        value % 10;
+
+        uint8_t tens =
+            (value / 100) % 10;
+
+        uint8_t ones =
+            (value / 10) % 10;
+
+        uint8_t decimal =
+            value % 10;
 
 
-    display_set_patterns(
-        seg_pattern[whole] | SEG_DP,
-        seg_pattern[decimal1],
-        seg_pattern[decimal2],
-        SEG_P
-    );
+        display_set_patterns(
+            seg_pattern[tens],
+            seg_pattern[ones] | SEG_DP,
+            seg_pattern[decimal],
+            SEG_P
+        );
+    }
+
+
+    /*
+     * RANGE 3:
+     *
+     * 100 to 999 W
+     *
+     * Resolution = 1 W
+     *
+     * Example:
+     * 125700 mW -> 126P
+     */
+
+    else if (p < 999500UL)
+    {
+        uint16_t value =
+            (uint16_t)((p + 500UL) / 1000UL);
+
+
+        uint8_t hundreds =
+            (value / 100) % 10;
+
+        uint8_t tens =
+            (value / 10) % 10;
+
+        uint8_t ones =
+            value % 10;
+
+
+        display_set_patterns(
+            seg_pattern[hundreds],
+            seg_pattern[tens],
+            seg_pattern[ones],
+            SEG_P
+        );
+    }
+
+
+    /*
+     * Above display range
+     */
+
+    else
+    {
+        display_set_patterns(
+            SEG_MINUS,
+            SEG_MINUS,
+            SEG_MINUS,
+            SEG_P
+        );
+    }
 }

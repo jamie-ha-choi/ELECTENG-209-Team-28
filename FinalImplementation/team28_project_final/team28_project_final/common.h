@@ -6,20 +6,41 @@
  */ 
 
 
+
 #ifndef COMMON_H_
 #define COMMON_H_
 
 #define F_CPU 2000000UL
 
-// ADC reference voltage on your PCB
+// ADC reference voltage (mV)
 #define ADC_REF_MV 5000UL
 
-// Number of voltage/current samples per measurement block
+// Number of samples
 #define NUM_SAMPLES 96
 
-#define VOLTAGE_SCALE_NUM 223L
-#define VOLTAGE_SCALE_DEN 10L
+/*
+ * VOLTAGE CALIBRATION
+ *
+ * Reference = 13.7 Vrms
+ * Previous display = 12.8 Vrms
+ *
+ * Previous scale = 22.3
+ * New scale = 23.87
+ */
 
-#define CURRENT_MV_PER_AMP 1065L
+#define VOLTAGE_SCALE_NUM 2387L
+#define VOLTAGE_SCALE_DEN 100L
+
+/*
+ * CURRENT CALIBRATION
+ *
+ * Reference = 300 mA peak
+ * Previous display = 275 mA peak
+ *
+ * Previous sensitivity = 1065 mV/A
+ * New sensitivity = 976 mV/A
+ */
+
+#define CURRENT_MV_PER_AMP 747L
 
 #endif

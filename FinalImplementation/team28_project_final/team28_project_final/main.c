@@ -1,9 +1,15 @@
+
 /*
  * team28_project_final.c
  *
- * Created: 2026/10/9 15:55:19
- * Author : Admin
- */ 
+ * ELECTENG 209 Energy Monitor
+ *
+ * Display:
+ * Voltage -> Current -> Power
+ * Each mode lasts approximately 2 seconds.
+ *
+ * CPU Clock: 2 MHz
+ */
 
 #include "common.h"
 
@@ -18,11 +24,15 @@
 #include <stdint.h>
 
 
+/*
+ * Print measurement results to UART.
+ */
+
 static void uart_print_measurement(
     measurement_t *m)
 {
     /*
-     * Voltage
+     * Voltage RMS
      */
 
     uart_print("Voltage = ");
@@ -41,7 +51,7 @@ static void uart_print_measurement(
 
 
     /*
-     * Current
+     * Current Peak
      */
 
     uart_print("   Current = ");
@@ -54,20 +64,17 @@ static void uart_print_measurement(
 
 
     /*
-     * Power
+     * Real Power
      */
 
     uart_print("   Power = ");
-
 
     if (m->power_mW < 0)
     {
         uart_transmit('-');
     }
 
-
     uint32_t power_abs;
-
 
     if (m->power_mW < 0)
     {
@@ -79,7 +86,6 @@ static void uart_print_measurement(
         power_abs =
             (uint32_t)m->power_mW;
     }
-
 
     uart_print_uint32(
         power_abs / 1000
@@ -112,10 +118,17 @@ static void uart_print_measurement(
 
     uart_print(" J");
 
-
     uart_print("\r\n");
 }
 
+
+/*
+ * Update display according to mode.
+ *
+ * Mode 0 = Voltage
+ * Mode 1 = Current
+ * Mode 2 = Power
+ */
 
 static void update_display(
     uint8_t display_mode,
@@ -123,10 +136,6 @@ static void update_display(
 {
     if (display_mode == 0)
     {
-        /*
-         * Voltage.
-         */
-
         display_voltage(
             m->voltage_rms_mV
         );
@@ -134,10 +143,6 @@ static void update_display(
 
     else if (display_mode == 1)
     {
-        /*
-         * Current.
-         */
-
         display_current(
             m->current_peak_mA
         );
@@ -145,10 +150,6 @@ static void update_display(
 
     else
     {
-        /*
-         * Power.
-         */
-
         display_power(
             m->power_mW
         );
@@ -156,10 +157,13 @@ static void update_display(
 }
 
 
+/*
+ * MAIN
+ */
+
 int main(void)
 {
     measurement_t measurement;
-
 
     uint16_t last_measure_time = 0;
 
@@ -169,22 +173,20 @@ int main(void)
 
     uint16_t last_energy_time = 0;
 
-
     uint8_t display_mode = 0;
 
 
     /*
      * PD2 = Vzc input.
      *
-     * Not used in Version 1 yet,
-     * but configure it correctly.
+     * Not used in Version 1 yet.
      */
 
     DDRD &= ~(1 << PD2);
 
 
     /*
-     * Initialise everything.
+     * Initialise hardware.
      */
 
     adc_init();
@@ -201,7 +203,7 @@ int main(void)
 
 
     /*
-     * Start global interrupts.
+     * Enable global interrupts.
      */
 
     sei();
@@ -214,11 +216,15 @@ int main(void)
 
 
     /*
-     * Initial display.
+     * Initial display = Voltage.
      */
 
     display_voltage(0);
 
+
+    /*
+     * Main loop.
+     */
 
     while (1)
     {
@@ -228,8 +234,10 @@ int main(void)
 
         /*
          * ---------------------------------
-         * Take a new measurement
-         * approximately every 100ms.
+         * MEASUREMENT
+         *
+         * Take new measurement
+         * approximately every 100 ms.
          * ---------------------------------
          */
 
@@ -268,8 +276,8 @@ int main(void)
 
 
             /*
-             * Update current display value
-             * without changing display mode.
+             * Update displayed value
+             * without changing mode.
              */
 
             update_display(
@@ -281,9 +289,15 @@ int main(void)
 
         /*
          * ---------------------------------
-         * Change display every ~1 second.
+         * DISPLAY MODE
          *
-         * Voltage ? Current ? Power
+         * Change mode every ~2 seconds.
+         *
+         * 0-2s = Voltage
+         * 2-4s = Current
+         * 4-6s = Power
+         *
+         * Repeat.
          * ---------------------------------
          */
 
@@ -292,7 +306,7 @@ int main(void)
 
         if ((uint16_t)
             (now - last_display_time)
-            >= 1000)
+            >= 2000)
         {
             last_display_time = now;
 
@@ -315,7 +329,10 @@ int main(void)
 
         /*
          * ---------------------------------
-         * UART every ~1 second.
+         * UART
+         *
+         * Print measurements
+         * approximately every 1 second.
          * ---------------------------------
          */
 
