@@ -2,14 +2,14 @@
  * measurement.h
  *
  * Created: 2026/10/9 16:06:56
- *  Author: Admin
+ *  Author: Lingwu Cai, Ziqi Meng, Bowen Zhang, Jamie choi
  */ 
+
 
 #ifndef MEASUREMENT_H_
 #define MEASUREMENT_H_
 
 #include <stdint.h>
-
 
 typedef struct
 {
@@ -30,16 +30,13 @@ void measurement_init(
 measurement_t *m
 );
 
-
 void measurement_take(
 measurement_t *m
 );
-
 
 void measurement_add_energy(
 measurement_t *m,
 uint16_t elapsed_ms
 );
-
 
 #endif

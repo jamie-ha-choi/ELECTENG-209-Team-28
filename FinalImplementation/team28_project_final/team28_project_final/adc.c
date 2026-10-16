@@ -2,141 +2,117 @@
  * adc.c
  *
  * Created: 2026/10/9 16:01:38
- *  Author: Admin
+ *  Author: Lingwu Cai, Ziqi Meng, Bowen Zhang, Jamie choi
  */ 
+
 #include "adc.h"
 #include "common.h"
 
 #include <avr/io.h>
+#include <stdint.h>
 
 
 void adc_init(void)
 {
     /*
-     * PC0 = ADC0 = Vmeas
-     * PC1 = ADC1 = Imeas
-     * PC2 = ADC2 = Offset
+     * PC0 = Voltage
+     * PC1 = Current
+     * PC2 = Offset
+     *
+     * Configure all as inputs.
      */
+    DDRC &= ~(
+        (1 << PC0) |
+        (1 << PC1) |
+        (1 << PC2)
+    );
 
-    DDRC &= ~((1 << PC0)
-            | (1 << PC1)
-            | (1 << PC2));
-
+    PORTC &= ~(
+        (1 << PC0) |
+        (1 << PC1) |
+        (1 << PC2)
+    );
 
     /*
-     * IMPORTANT:
+     * REFS1:0 = 00
+     * External AREF reference.
      *
-     *PCB connects AREF directly to 5V.
-     *
-     * Therefore:
-     *
-     * REFS1 = 0
-     * REFS0 = 0
-     *
-     * External voltage on AREF is used.
-     *
-     * ADLAR = 0
-     * Result is right-adjusted.
-     *
-     * Start with ADC0.
+     * Initial channel = ADC0.
      */
-
     ADMUX = 0;
 
-
     /*
-     * Enable ADC.
-     *
-     * CPU clock = 2MHz
-     *
-     * Prescaler = 16
-     *
      * ADC clock:
-     *
-     * 2MHz / 16 = 125kHz
+     * 2 MHz / 16 = 125 kHz
      */
-
-    ADCSRA = (1 << ADEN)
-           | (1 << ADPS2);
-
+    ADCSRA =
+        (1 << ADEN) |
+        (1 << ADPS2);
 
     ADCSRB = 0;
 
-
     /*
-     * Disable digital input buffers
-     * on ADC0, ADC1 and ADC2.
-     *
-     * This helps reduce noise.
+     * Disable digital input buffers.
      */
+    DIDR0 =
+        (1 << ADC0D) |
+        (1 << ADC1D) |
+        (1 << ADC2D);
 
-    DIDR0 = (1 << ADC0D)
-          | (1 << ADC1D)
-          | (1 << ADC2D);
-
-
-    /*
-     * First ADC conversion after enabling
-     * can take longer.
-     *
-     * Perform one dummy conversion.
-     */
-
-    adc_read(0);
+    // Dummy conversion after enabling ADC
+    (void)adc_read(0);
 }
 
 
 uint16_t adc_read(uint8_t channel)
 {
     /*
-     * Clear old channel bits:
-     *
-     * xxxx1111
-     *
-     * Then insert new channel.
+     * Choose ADC0, ADC1 or ADC2.
      */
-
-    ADMUX = (ADMUX & 0xF0)
-          | (channel & 0x0F);
-
+    ADMUX =
+        (ADMUX & 0xF0) |
+        (channel & 0x0F);
 
     /*
-     * Start conversion.
+     * Begin conversion.
      */
-
     ADCSRA |= (1 << ADSC);
 
-
     /*
-     * ADSC stays 1 while conversion
-     * is happening.
-     *
-     * Wait until it becomes 0.
+     * Wait until conversion completes.
      */
-
     while (ADCSRA & (1 << ADSC))
     {
     }
-
-
-    /*
-     * ADC is the combined
-     * ADCL + ADCH 10-bit result.
-     */
 
     return ADC;
 }
 
 
-uint16_t adc_read_average(uint8_t channel,
-                          uint8_t samples)
+uint16_t adc_read_average(
+    uint8_t channel,
+    uint8_t samples
+)
 {
-    uint32_t sum = 0;
+    uint32_t total = 0;
+
+    if (samples == 0)
+    {
+        return 0;
+    }
+
+    /*
+     * Discard the first conversion
+     * after switching channels.
+     */
+    (void)adc_read(channel);
 
     for (uint8_t i = 0; i < samples; i++)
     {
-        sum += adc_read(channel);
+        total += adc_read(channel);
     }
 
-    return (uint16_t)(sum / samples);
+    return (uint16_t)(
+        total / samples
+    );
 }

@@ -1,14 +1,16 @@
 
 /*
- * team28_project_final.c
+ * main.c
  *
  * ELECTENG 209 Energy Monitor
+ * Team 28
+ *
+ * CPU = 2 MHz
  *
  * Display:
  * Voltage -> Current -> Power
- * Each mode lasts approximately 2 seconds.
  *
- * CPU Clock: 2 MHz
+ * Each mode = 2 seconds
  */
 
 #include "common.h"
@@ -25,16 +27,15 @@
 
 
 /*
- * Print measurement results to UART.
+ * Print results to UART.
  */
-
 static void uart_print_measurement(
-    measurement_t *m)
+    const measurement_t *m
+)
 {
     /*
-     * Voltage RMS
+     * RMS Voltage
      */
-
     uart_print("Voltage = ");
 
     uart_print_uint32(
@@ -51,9 +52,8 @@ static void uart_print_measurement(
 
 
     /*
-     * Current Peak
+     * Peak Current
      */
-
     uart_print("   Current = ");
 
     uart_print_uint32(
@@ -66,35 +66,35 @@ static void uart_print_measurement(
     /*
      * Real Power
      */
-
     uart_print("   Power = ");
 
-    if (m->power_mW < 0)
+    int32_t p = m->power_mW;
+
+    if (p < 0)
     {
         uart_transmit('-');
     }
 
-    uint32_t power_abs;
+    uint32_t abs_power;
 
-    if (m->power_mW < 0)
+    if (p < 0)
     {
-        power_abs =
-            (uint32_t)(-m->power_mW);
+        abs_power =
+            (uint32_t)(-(int64_t)p);
     }
     else
     {
-        power_abs =
-            (uint32_t)m->power_mW;
+        abs_power = (uint32_t)p;
     }
 
     uart_print_uint32(
-        power_abs / 1000
+        abs_power / 1000
     );
 
     uart_transmit('.');
 
     uart_print_3digits(
-        power_abs % 1000
+        abs_power % 1000
     );
 
     uart_print(" W");
@@ -103,7 +103,6 @@ static void uart_print_measurement(
     /*
      * Energy
      */
-
     uart_print("   Energy = ");
 
     uart_print_uint32(
@@ -118,36 +117,44 @@ static void uart_print_measurement(
 
     uart_print(" J");
 
+
+    /*
+     * Offset diagnostic value
+     */
+    uart_print("   OffsetADC = ");
+
+    uart_print_uint32(
+        m->offset_adc
+    );
+
     uart_print("\r\n");
 }
 
 
 /*
- * Update display according to mode.
+ * Select the display mode.
  *
- * Mode 0 = Voltage
- * Mode 1 = Current
- * Mode 2 = Power
+ * 0 = Voltage
+ * 1 = Current
+ * 2 = Power
  */
-
 static void update_display(
-    uint8_t display_mode,
-    measurement_t *m)
+    uint8_t mode,
+    const measurement_t *m
+)
 {
-    if (display_mode == 0)
+    if (mode == 0)
     {
         display_voltage(
             m->voltage_rms_mV
         );
     }
-
-    else if (display_mode == 1)
+    else if (mode == 1)
     {
         display_current(
             m->current_peak_mA
         );
     }
-
     else
     {
         display_power(
@@ -157,20 +164,13 @@ static void update_display(
 }
 
 
-/*
- * MAIN
- */
-
 int main(void)
 {
     measurement_t measurement;
 
     uint16_t last_measure_time = 0;
-
     uint16_t last_display_time = 0;
-
     uint16_t last_uart_time = 0;
-
     uint16_t last_energy_time = 0;
 
     uint8_t display_mode = 0;
@@ -179,52 +179,39 @@ int main(void)
     /*
      * PD2 = Vzc input.
      *
-     * Not used in Version 1 yet.
+     * Currently reserved for
+     * future zero-cross synchronisation.
      */
-
     DDRD &= ~(1 << PD2);
 
 
     /*
-     * Initialise hardware.
+     * Initialise modules.
      */
-
     adc_init();
-
     uart_init();
-
     init_display();
-
     timer0_init();
 
-    measurement_init(
-        &measurement
-    );
-
+    measurement_init(&measurement);
 
     /*
-     * Enable global interrupts.
+     * Enable interrupts.
      */
-
     sei();
 
 
     uart_print(
         "\r\n"
-        "ELECTENG209 Energy Monitor\r\n"
+        "ELECTENG209 Energy Monitor - Team28\r\n"
     );
 
 
     /*
-     * Initial display = Voltage.
+     * Start with Voltage display.
      */
-
     display_voltage(0);
 
-
-    /*
-     * Main loop.
-     */
 
     while (1)
     {
@@ -233,53 +220,38 @@ int main(void)
 
 
         /*
-         * ---------------------------------
          * MEASUREMENT
          *
-         * Take new measurement
-         * approximately every 100 ms.
-         * ---------------------------------
+         * Approximately every 100 ms.
          */
-
-        if ((uint16_t)
-            (now - last_measure_time)
-            >= 100)
+        if ((uint16_t)(
+            now - last_measure_time
+        ) >= MEASURE_INTERVAL_MS)
         {
             measurement_take(
                 &measurement
             );
 
-
-            uint16_t after_measurement =
+            uint16_t after =
                 timer0_get_ms();
 
-
-            uint16_t energy_elapsed =
+            uint16_t elapsed =
                 (uint16_t)(
-                    after_measurement
-                    - last_energy_time
+                    after - last_energy_time
                 );
-
 
             measurement_add_energy(
                 &measurement,
-                energy_elapsed
+                elapsed
             );
 
-
-            last_energy_time =
-                after_measurement;
-
-
-            last_measure_time =
-                after_measurement;
-
+            last_energy_time = after;
+            last_measure_time = after;
 
             /*
-             * Update displayed value
+             * Refresh current value
              * without changing mode.
              */
-
             update_display(
                 display_mode,
                 &measurement
@@ -288,38 +260,25 @@ int main(void)
 
 
         /*
-         * ---------------------------------
          * DISPLAY MODE
          *
-         * Change mode every ~2 seconds.
-         *
-         * 0-2s = Voltage
-         * 2-4s = Current
-         * 4-6s = Power
-         *
-         * Repeat.
-         * ---------------------------------
+         * Change every 2 seconds.
          */
-
         now = timer0_get_ms();
 
-
-        if ((uint16_t)
-            (now - last_display_time)
-            >= 2000)
+        if ((uint16_t)(
+            now - last_display_time
+        ) >= DISPLAY_INTERVAL_MS)
         {
             last_display_time = now;
 
-
             display_mode++;
-
 
             if (display_mode >= 3)
             {
                 display_mode = 0;
             }
 
-
             update_display(
                 display_mode,
                 &measurement
@@ -328,20 +287,18 @@ int main(void)
 
 
         /*
-         * ---------------------------------
          * UART
          *
-         * Print measurements
-         * approximately every 1 second.
-         * ---------------------------------
+         * Print approximately
+         * every 1 second.
          */
+        now = timer0_get_ms();
 
-        if ((uint16_t)
-            (now - last_uart_time)
-            >= 1000)
+        if ((uint16_t)(
+            now - last_uart_time
+        ) >= UART_INTERVAL_MS)
         {
             last_uart_time = now;
-
 
             uart_print_measurement(
                 &measurement

@@ -7,40 +7,56 @@
 
 
 
+
 #ifndef COMMON_H_
 #define COMMON_H_
 
 #define F_CPU 2000000UL
 
-// ADC reference voltage (mV)
+// External AREF, in millivolts
 #define ADC_REF_MV 5000UL
 
-// Number of samples
-#define NUM_SAMPLES 96
+// ADC sampling
+#define NUM_SAMPLES 96U
 
 /*
- * VOLTAGE CALIBRATION
+ * Voltage divider inverse gain
  *
- * Reference = 13.7 Vrms
- * Previous display = 12.8 Vrms
+ * R1 + R3 = 21.3k
+ * R4 = 1k
+ * R12 + R13 = 20k
  *
- * Previous scale = 22.3
- * New scale = 23.87
+ * Inverse AC gain = 23.365
  */
-
-#define VOLTAGE_SCALE_NUM 2387L
-#define VOLTAGE_SCALE_DEN 100L
+#define VOLTAGE_SCALE_NUM 23365L
+#define VOLTAGE_SCALE_DEN 1000L
 
 /*
- * CURRENT CALIBRATION
+ * Current sensing
  *
- * Reference = 300 mA peak
- * Previous display = 275 mA peak
+ * Shunt: 1 ohm || 1 ohm = 0.5 ohm
+ * U3C gain = 21.3k / 10k = 2.13
  *
- * Previous sensitivity = 1065 mV/A
- * New sensitivity = 976 mV/A
+ * Sensitivity = 1065 mV/A
  */
+#define CURRENT_GAIN_NUM 213L
+#define CURRENT_GAIN_DEN 100L
 
-#define CURRENT_MV_PER_AMP 747L
+#define CURRENT_MV_PER_AMP 1065L
+
+/*
+ * Voltage selection:
+ *
+ * 1 = AC Source voltage at J1
+ * 0 = AC Load voltage at P1
+ *
+ * Real Power always uses load voltage.
+ */
+#define DISPLAY_SOURCE_VOLTAGE 1
+
+// Timing in milliseconds
+#define MEASURE_INTERVAL_MS 100U
+#define DISPLAY_INTERVAL_MS 2000U
+#define UART_INTERVAL_MS 1000U
 
 #endif

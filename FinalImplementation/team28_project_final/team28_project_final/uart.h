@@ -2,8 +2,9 @@
  * uart.h
  *
  * Created: 2026/10/9 16:02:29
- *  Author: Admin
+ *  Author: Lingwu Cai, Ziqi Meng, Bowen Zhang, Jamie choi
  */ 
+
 
 #ifndef UART_H_
 #define UART_H_

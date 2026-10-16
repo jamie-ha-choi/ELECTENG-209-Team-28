@@ -2,7 +2,7 @@
  * timer0.h
  *
  * Created: 2026/10/9 16:05:59
- *  Author: Admin
+ *  Author: Lingwu Cai, Ziqi Meng, Bowen Zhang, Jamie choi
  */ 
 
 
@@ -11,10 +11,8 @@
 
 #include <stdint.h>
 
-
 void timer0_init(void);
 
 uint16_t timer0_get_ms(void);
-
 
 #endif
